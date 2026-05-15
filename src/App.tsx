@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import * as fabric from "fabric";
 import * as UTIF from "utif";
+import { AccountProfile } from "./accountProfile";
 
 type AuthMode = "login" | "register";
 type ToolMode = "select" | "draw" | "erase" | "crop";
@@ -988,31 +989,22 @@ export default function App() {
 
         <section className="editor-stage" aria-label="Image canvas">
           <div className="stage-toolbar">
-            <div className="header-account">
-              {authUser ? (
-                <>
-                  <span>Signed in as {getDisplayUsername(authUser)}</span>
-                  <button type="button" onClick={handleSignOut}>
-                    Sign out
-                  </button>
-                  <button type="button" onClick={handleChangeAccount}>
-                    Change account
-                  </button>
-                  <a
-                    className="danger"
-                    href={`mailto:${contactEmail}?subject=Delete%20account%20request&body=${encodeURIComponent(
-                      `Please delete my Web Image Editor account.\n\nAccount: ${authUser.email ?? getDisplayUsername(authUser)}\n\n`,
-                    )}`}
-                  >
-                    Delete account request
-                  </a>
-                </>
-              ) : (
-                <button type="button" onClick={() => setIsAuthModalOpen(true)} disabled={!isAuthReady}>
-                  Sign in
-                </button>
-              )}
-            </div>
+            <AccountProfile
+              compact
+              className="header-account"
+              user={authUser}
+              isAuthReady={isAuthReady}
+              onSignOut={handleSignOut}
+              onChangeAccount={handleChangeAccount}
+              onLogin={() => setIsAuthModalOpen(true)}
+              deleteHref={`mailto:${contactEmail}?subject=Delete%20account%20request&body=${encodeURIComponent(
+                `Please delete my Web Image Editor account.
+
+Account: ${authUser?.email ?? (authUser ? getDisplayUsername(authUser) : "")}
+
+`,
+              )}`}
+            />
             <div className="toolbar-actions">
               {toolMode === "crop" ? (
                 <div className="crop-actions" aria-label="Crop actions">
