@@ -1,5 +1,6 @@
 # Web Image Editor
 
+A GitHub Pages-ready browser image editor built with React, Vite, TypeScript, Fabric.js, and OpenMoji stickers.
 
 ## Local Development
 
@@ -16,8 +17,6 @@ npm run build
 
 ## Public Environment Variables
 
-These values are bundled into the browser build and must be treated as public client configuration:
+No public environment variables are required for local development or GitHub Pages builds.
 
-
-Copy `.env.example` to `.env.local` for local development, or configure these variables in your GitHub Pages build workflow.
-
+Image editing and export happen locally in the browser. OpenMoji sticker SVGs are loaded from jsDelivr when selected.

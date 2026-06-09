@@ -1,9 +1,7 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as fabric from "fabric";
 import * as UTIF from "utif";
-import { AccountProfile } from "./accountProfile";
 
-type AuthMode = "login" | "register";
 type ToolMode = "select" | "draw" | "erase" | "crop";
 type ExportFormat = "png" | "jpeg" | "webp" | "svg";
 type ShapeKind = "rect" | "circle" | "line" | "arrow" | "star" | "speech";
@@ -16,10 +14,6 @@ type StickerResult = {
 };
 
 const contactEmail = "contact.marfeyx@gmail.com";
-const maxAuthAttempts = 5;
-const authLockoutMs = 60 * 1000;
-const maxAuthSubmissions = 5;
-const authRateLimitWindowMs = 60 * 1000;
 const acceptedTypes =
   "image/png,image/jpeg,image/webp,image/gif,image/bmp,image/svg+xml,image/avif,image/tiff,.tif,.tiff";
 const openMojiBaseUrl = "https://cdn.jsdelivr.net/npm/openmoji@16.0.0/color/svg";
@@ -104,8 +98,7 @@ const initialAdjustments = {
   blur: 0,
   pixelate: 0,
   grayscale: false,
-  sepia: false,
-};
+  sepia: false };
 
 export default function App() {
   const canvasElementRef = useRef<HTMLCanvasElement | null>(null);
@@ -119,23 +112,7 @@ export default function App() {
   const isErasingRef = useRef(false);
   const toolModeRef = useRef<ToolMode>("select");
   const pendingShapeRef = useRef<ShapeKind | null>(null);
-  const authUserRef = useRef<User | null>(null);
-  const authSubmissionTimes = useRef<number[]>([]);
 
-  const [authUser, setAuthUser] = useState<User | null>(null);
-  const [isAuthReady, setIsAuthReady] = useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<AuthMode>("login");
-  const [authEmail, setAuthEmail] = useState("");
-  const [authPassword, setAuthPassword] = useState("");
-  const [authDisplayName, setAuthDisplayName] = useState("");
-  const [authError, setAuthError] = useState("");
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [accountActionError, setAccountActionError] = useState("");
-  const [authFailures, setAuthFailures] = useState(0);
-  const [authLockedUntil, setAuthLockedUntil] = useState<number | null>(null);
-  const [authRateLimitedUntil, setAuthRateLimitedUntil] = useState<number | null>(null);
-  const [now, setNow] = useState(Date.now());
 
   const [toolMode, setToolMode] = useState<ToolMode>("select");
   const [hasCropSelection, setHasCropSelection] = useState(false);
@@ -149,7 +126,7 @@ export default function App() {
   const [fontFamily, setFontFamily] = useState("Inter");
   const [canvasWidth, setCanvasWidth] = useState(1200);
   const [canvasHeight, setCanvasHeight] = useState(800);
-  const [status, setStatus] = useState("Sign in, then open an image to begin.");
+  const [status, setStatus] = useState("Open an image to begin.");
   const [error, setError] = useState("");
   const [activeObjectLabel, setActiveObjectLabel] = useState("No selection");
   const [zoom, setZoom] = useState(0.72);
@@ -164,27 +141,14 @@ export default function App() {
   const [exportQuality, setExportQuality] = useState(0.95);
   const [exportScale, setExportScale] = useState(1);
 
-  const isAuthLocked = Boolean(authLockedUntil && authLockedUntil > now);
-  const isAuthRateLimited = Boolean(authRateLimitedUntil && authRateLimitedUntil > now);
-  const isAuthBlocked = isAuthLocked || isAuthRateLimited;
-  const lockoutSeconds = authLockedUntil ? Math.max(0, Math.ceil((authLockedUntil - now) / 1000)) : 0;
-  const rateLimitSeconds = authRateLimitedUntil ? Math.max(0, Math.ceil((authRateLimitedUntil - now) / 1000)) : 0;
-  const authBlockSeconds = Math.max(lockoutSeconds, rateLimitSeconds);
-  const authBlockMessage = isAuthLocked
-    ? `Too many failed attempts. Try again in ${lockoutSeconds} seconds.`
-    : isAuthRateLimited
-      ? `Too many submissions. Try again in ${rateLimitSeconds} seconds.`
-      : "";
-
-  const canUseEditor = Boolean(authUser);
+  const canUseEditor = true;
   const hasImage = Boolean(baseImageRef.current);
 
   const canvasStyle = useMemo(
     () => ({
       width: `${canvasWidth}px`,
       height: `${canvasHeight}px`,
-      transform: `scale(${zoom})`,
-    }),
+      transform: `scale(${zoom})` }),
     [canvasHeight, canvasWidth, zoom],
   );
 
@@ -196,8 +160,7 @@ export default function App() {
       height: canvasHeight,
       backgroundColor: "",
       preserveObjectStacking: true,
-      selection: true,
-    });
+      selection: true });
 
     canvasRef.current = canvas;
     canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
@@ -226,8 +189,7 @@ export default function App() {
         name: "Paint stroke",
         editorRole: "paint",
         selectable: true,
-        evented: true,
-      } as any);
+        evented: true } as any);
       canvas.renderAll();
       saveHistory(true);
     });
@@ -259,32 +221,7 @@ export default function App() {
     };
   }, []);
 
-  useEffect(() => {
-    authUserRef.current = authUser;
-    if (!authUser && fileInputRef.current) fileInputRef.current.value = "";
-  }, [authUser]);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 500);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-      setAuthUser(data.user);
-      setIsAuthReady(true);
-      if (!data.user) setIsAuthModalOpen(true);
-    });
-
-    const {
-      data: { subscription },
-      setAuthUser(session?.user ?? null);
-      setIsAuthReady(true);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
+    useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     toolModeRef.current = toolMode;
@@ -319,92 +256,16 @@ export default function App() {
     applyImageFilters();
   }, [adjustments]);
 
-  function requireAuth(): boolean {
-    if (authUser) return true;
-    setAuthError("");
-    setIsAuthModalOpen(true);
-    return false;
-  }
 
-  async function handleAuthSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (isAuthBlocked) {
-      setAuthError(authBlockMessage);
-      return;
-    }
 
-    const email = normalizeEmail(authEmail);
-    const displayName = authDisplayName.trim();
-    const validationError = validateCredentials(email, authPassword, authMode === "register" ? displayName : "");
-    if (validationError) {
-      setAuthError(validationError);
-      return;
-    }
 
-    const rateLimitError = registerAuthSubmission();
-    if (rateLimitError) {
-      setAuthError(rateLimitError);
-      return;
-    }
 
-    setIsAuthenticating(true);
-    setAuthError("");
-    try {
-      const result =
-        authMode === "login"
-              email,
-              password: authPassword,
-              options: { data: { display_name: displayName } },
-            });
 
-      if (result.error) {
-        if (shouldCountAuthFailure(result.error, authMode)) registerAuthFailure();
-        setAuthError(getAuthErrorMessage(result.error, authMode));
-        return;
-      }
 
-      setAuthFailures(0);
-      setAuthLockedUntil(null);
-      setAuthPassword("");
-      setIsAuthModalOpen(false);
-      if (authMode === "register" && !result.data.session) {
-        setAuthError("Check your email to confirm your account before signing in.");
-        setAuthMode("login");
-        setIsAuthModalOpen(true);
-      }
-    } catch {
-    } finally {
-      setIsAuthenticating(false);
-    }
-  }
 
-    authUserRef.current = null;
-    setAuthUser(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    setStatus("Signed out. Sign in again to keep editing.");
-  }
-
-  async function handleChangeAccount() {
-    authUserRef.current = null;
-    setAuthUser(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-    setAuthEmail("");
-    setAuthPassword("");
-    setAuthDisplayName("");
-    setAuthMode("login");
-    setAuthError("");
-    setAccountActionError("");
-    setIsAuthModalOpen(true);
-  }
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
-    if (!authUserRef.current) {
-      setError("Sign in before opening an image file.");
-      setIsAuthModalOpen(true);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      return;
-    }
     setError("");
     setStatus(`Opening ${file.name}...`);
 
@@ -429,8 +290,7 @@ export default function App() {
         selectable: false,
         evented: false,
         objectCaching: false,
-        name: "Base image",
-      });
+        name: "Base image" });
       baseImageRef.current = image;
       canvas.add(image);
       canvas.sendObjectToBack(image);
@@ -446,9 +306,7 @@ export default function App() {
     }
   }
 
-  function setTool(nextTool: ToolMode) {
-    if (!requireAuth()) return;
-    pendingShapeRef.current = null;
+  function setTool(nextTool: ToolMode) {    pendingShapeRef.current = null;
     setPendingShape(null);
     setToolMode(nextTool);
     if (nextTool === "crop") {
@@ -459,9 +317,7 @@ export default function App() {
     removeCropRect(false);
   }
 
-  function addText() {
-    if (!requireAuth()) return;
-    const canvas = canvasRef.current;
+  function addText() {    const canvas = canvasRef.current;
     if (!canvas) return;
     const text = new fabric.Textbox("Double click to edit", {
       left: canvasWidth * 0.12,
@@ -471,16 +327,13 @@ export default function App() {
       fontFamily,
       fill: strokeColor,
       backgroundColor: "rgba(255,255,255,0)",
-      name: "Text",
-    });
+      name: "Text" });
     canvas.add(text);
     canvas.setActiveObject(text);
     canvas.renderAll();
   }
 
-  function armShape(kind: ShapeKind) {
-    if (!requireAuth()) return;
-    if (!baseImageRef.current) {
+  function armShape(kind: ShapeKind) {    if (!baseImageRef.current) {
       setError("Open an image before adding shapes.");
       return;
     }
@@ -491,9 +344,7 @@ export default function App() {
     setStatus(`Click the image where the ${labelForShape(kind).toLowerCase()} should appear.`);
   }
 
-  function placeShape(kind: ShapeKind, x: number, y: number) {
-    if (!requireAuth()) return;
-    const canvas = canvasRef.current;
+  function placeShape(kind: ShapeKind, x: number, y: number) {    const canvas = canvasRef.current;
     if (!canvas) return;
     const common = {
       left: x,
@@ -502,8 +353,7 @@ export default function App() {
       stroke: strokeColor,
       strokeWidth,
       originX: "center" as const,
-      originY: "center" as const,
-    };
+      originY: "center" as const };
     let shape: fabric.Object;
     if (kind === "rect") {
       shape = new fabric.Rect({ ...common, width: 220, height: 140, rx: 10, ry: 10 });
@@ -522,15 +372,13 @@ export default function App() {
         width: 28,
         height: 34,
         fill: strokeColor,
-        selectable: false,
-      });
+        selectable: false });
       shape = new fabric.Group([line, head], { ...common, fill: "" });
     } else if (kind === "speech") {
       shape = new fabric.Path("M 0 0 L 260 0 Q 286 0 286 26 L 286 126 Q 286 152 260 152 L 94 152 L 44 196 L 56 152 L 26 152 Q 0 152 0 126 L 0 26 Q 0 0 26 0 Z", {
         ...common,
         scaleX: 0.9,
-        scaleY: 0.9,
-      });
+        scaleY: 0.9 });
     } else {
       shape = new fabric.Polygon(makeStarPoints(5, 95, 42), { ...common });
     }
@@ -588,9 +436,7 @@ export default function App() {
     saveHistory();
   }
 
-  function flipCanvas(axis: "x" | "y") {
-    if (!requireAuth()) return;
-    const canvas = canvasRef.current;
+  function flipCanvas(axis: "x" | "y") {    const canvas = canvasRef.current;
     if (!canvas) return;
     canvas.getObjects().forEach((object) => {
       if (axis === "x") {
@@ -614,9 +460,7 @@ export default function App() {
     saveHistory();
   }
 
-  function resizeCanvas(nextWidth: number, nextHeight: number, scaleContent: boolean) {
-    if (!requireAuth()) return;
-    const canvas = canvasRef.current;
+  function resizeCanvas(nextWidth: number, nextHeight: number, scaleContent: boolean) {    const canvas = canvasRef.current;
     if (!canvas) return;
     nextWidth = clamp(Math.round(nextWidth), 1, 8000);
     nextHeight = clamp(Math.round(nextHeight), 1, 8000);
@@ -628,8 +472,7 @@ export default function App() {
           left: (object.left || 0) * scaleX,
           top: (object.top || 0) * scaleY,
           scaleX: (object.scaleX || 1) * scaleX,
-          scaleY: (object.scaleY || 1) * scaleY,
-        });
+          scaleY: (object.scaleY || 1) * scaleY });
         object.setCoords();
       });
     }
@@ -640,9 +483,7 @@ export default function App() {
     saveHistory();
   }
 
-  function expandCanvas(padX: number, padY: number) {
-    if (!requireAuth()) return;
-    const canvas = canvasRef.current;
+  function expandCanvas(padX: number, padY: number) {    const canvas = canvasRef.current;
     if (!canvas) return;
     canvas.getObjects().forEach((object) => {
       object.set({ left: (object.left || 0) + padX, top: (object.top || 0) + padY });
@@ -679,8 +520,7 @@ export default function App() {
       transparentCorners: false,
       borderColor: "#0a8f68",
       borderScaleFactor: 2,
-      name: "Crop area",
-    });
+      name: "Crop area" });
     cropRectRef.current = rect;
     setHasCropSelection(true);
     canvas.add(rect);
@@ -738,9 +578,7 @@ export default function App() {
     setIsSearchingStickers(false);
   }
 
-  async function addSticker(sticker: StickerResult) {
-    if (!requireAuth()) return;
-    const canvas = canvasRef.current;
+  async function addSticker(sticker: StickerResult) {    const canvas = canvasRef.current;
     if (!canvas) return;
     try {
       const image = await fabric.FabricImage.fromURL(sticker.fullUrl, { crossOrigin: "anonymous" });
@@ -749,8 +587,7 @@ export default function App() {
       image.set({
         left: canvasWidth * 0.36,
         top: canvasHeight * 0.32,
-        name: sticker.title,
-      });
+        name: sticker.title });
       canvas.add(image);
       canvas.setActiveObject(image);
       canvas.renderAll();
@@ -759,9 +596,7 @@ export default function App() {
     }
   }
 
-  function exportImage() {
-    if (!requireAuth()) return;
-    const canvas = canvasRef.current;
+  function exportImage() {    const canvas = canvasRef.current;
     if (!canvas) return;
     removeCropRect(false);
     const filename = `marfeyx-services-image-${Date.now()}.${exportFormat === "jpeg" ? "jpg" : exportFormat}`;
@@ -773,8 +608,7 @@ export default function App() {
       dataUrl = canvas.toDataURL({
         format: exportFormat,
         quality: exportQuality,
-        multiplier: exportScale,
-      });
+        multiplier: exportScale });
     }
     const link = document.createElement("a");
     link.href = dataUrl;
@@ -828,27 +662,7 @@ export default function App() {
     else setActiveObjectLabel(String(object.get("name") || object.type || "Object"));
   }
 
-  function registerAuthSubmission(): string {
-    const timestamp = Date.now();
-    const windowStart = timestamp - authRateLimitWindowMs;
-    authSubmissionTimes.current = authSubmissionTimes.current.filter((attemptedAt) => attemptedAt > windowStart);
-    if (authSubmissionTimes.current.length >= maxAuthSubmissions) {
-      const retryAt = authSubmissionTimes.current[0] + authRateLimitWindowMs;
-      setAuthRateLimitedUntil(retryAt);
-      return `Too many attempts. Try again in ${Math.ceil((retryAt - timestamp) / 1000)} seconds.`;
-    }
-    authSubmissionTimes.current.push(timestamp);
-    return "";
-  }
 
-  function registerAuthFailure() {
-    const nextFailures = authFailures + 1;
-    setAuthFailures(nextFailures);
-    if (nextFailures >= maxAuthAttempts) {
-      setAuthLockedUntil(Date.now() + authLockoutMs);
-      setAuthFailures(0);
-    }
-  }
 
   function applyImageFilters() {
     const image = baseImageRef.current;
@@ -884,31 +698,22 @@ export default function App() {
             <p className="eyebrow">Private browser editor</p>
             <h1>Web Image Editor</h1>
           </div>
-
           {error ? <p className="error-message">{error}</p> : null}
 
-          {authUser ? (
-            <>
-              <button className="file-drop" type="button" onClick={() => fileInputRef.current?.click()} disabled={!isAuthReady}>
-                <span className="file-icon">+</span>
-                <span>Open image file</span>
-                <small>PNG, JPEG, WebP, GIF, BMP, SVG</small>
-              </button>
-              <input
-                ref={fileInputRef}
-                className="hidden-file-input"
-                type="file"
-                accept={acceptedTypes}
-                onChange={(event) => handleFile(event.target.files?.[0])}
-              />
-            </>
-          ) : (
-            <button className="file-drop" type="button" onClick={() => setIsAuthModalOpen(true)} disabled={!isAuthReady}>
+          <>
+            <button className="file-drop" type="button" onClick={() => fileInputRef.current?.click()}>
               <span className="file-icon">+</span>
-              <span>Sign in to open images</span>
-              <small>Image upload is locked until login</small>
+              <span>Open image file</span>
+              <small>PNG, JPEG, WebP, GIF, BMP, SVG</small>
             </button>
-          )}
+            <input
+              ref={fileInputRef}
+              className="hidden-file-input"
+              type="file"
+              accept={acceptedTypes}
+              onChange={(event) => handleFile(event.target.files?.[0])}
+            />
+          </>
 
           <section className="tool-section">
             <h2>Tools</h2>
@@ -935,7 +740,7 @@ export default function App() {
 
           <section className="tool-section">
             <h2>Add</h2>
-            <button type="button" onClick={addText} disabled={!canUseEditor}>
+            <button type="button" onClick={addText} >
               Text
             </button>
             <div className="shape-grid">
@@ -945,7 +750,7 @@ export default function App() {
                   type="button"
                   className={pendingShape === shape ? "active" : ""}
                   onClick={() => armShape(shape)}
-                  disabled={!canUseEditor}
+
                 >
                   {labelForShape(shape)}
                 </button>
@@ -989,22 +794,7 @@ export default function App() {
 
         <section className="editor-stage" aria-label="Image canvas">
           <div className="stage-toolbar">
-            <AccountProfile
-              compact
-              className="header-account"
-              user={authUser}
-              isAuthReady={isAuthReady}
-              onSignOut={handleSignOut}
-              onChangeAccount={handleChangeAccount}
-              onLogin={() => setIsAuthModalOpen(true)}
-              deleteHref={`mailto:${contactEmail}?subject=Delete%20account%20request&body=${encodeURIComponent(
-                `Please delete my Web Image Editor account.
 
-Account: ${authUser?.email ?? (authUser ? getDisplayUsername(authUser) : "")}
-
-`,
-              )}`}
-            />
             <div className="toolbar-actions">
               {toolMode === "crop" ? (
                 <div className="crop-actions" aria-label="Crop actions">
@@ -1168,124 +958,22 @@ Account: ${authUser?.email ?? (authUser ? getDisplayUsername(authUser) : "")}
               Scale <span>{exportScale}x</span>
               <input type="range" min="0.25" max="4" step="0.25" value={exportScale} onChange={(event) => setExportScale(Number(event.target.value))} />
             </label>
-            <button className="primary-action" type="button" onClick={exportImage} disabled={!canUseEditor || !hasImage}>
+            <button className="primary-action" type="button" onClick={exportImage} disabled={!hasImage}>
               Download image
             </button>
           </section>
 
           <footer className="footer-links">
-            <div className="privacy-note">
-            </div>
+            <div className="privacy-note">Images stay in this browser. OpenMoji stickers load from jsDelivr when used.</div>
             <a href="privacy.html">Privacy Policy</a>
             <a href={`mailto:${contactEmail}?subject=Web%20Image%20Editor%20Issue`}>Report issues</a>
-            {accountActionError ? <p className="inline-error">{accountActionError}</p> : null}
+            
           </footer>
         </aside>
       </main>
 
-      {isAuthModalOpen ? (
-        <AuthModal
-          mode={authMode}
-          email={authEmail}
-          password={authPassword}
-          displayName={authDisplayName}
-          error={authError}
-          isSubmitting={isAuthenticating}
-          isLocked={isAuthBlocked}
-          lockoutSeconds={authBlockSeconds}
-          lockedMessage={authBlockMessage}
-          onModeChange={(mode) => {
-            setAuthMode(mode);
-            setAuthError("");
-          }}
-          onEmailChange={setAuthEmail}
-          onPasswordChange={setAuthPassword}
-          onDisplayNameChange={setAuthDisplayName}
-          onClose={() => {
-            if (!isAuthenticating) setIsAuthModalOpen(false);
-          }}
-          onSubmit={handleAuthSubmit}
-        />
-      ) : null}
-    </>
-  );
-}
 
-function AuthModal({
-  mode,
-  email,
-  password,
-  displayName,
-  error,
-  isSubmitting,
-  isLocked,
-  lockoutSeconds,
-  lockedMessage,
-  onModeChange,
-  onEmailChange,
-  onPasswordChange,
-  onDisplayNameChange,
-  onClose,
-  onSubmit,
-}: {
-  mode: AuthMode;
-  email: string;
-  password: string;
-  displayName: string;
-  error: string;
-  isSubmitting: boolean;
-  isLocked: boolean;
-  lockoutSeconds: number;
-  lockedMessage: string;
-  onModeChange: (mode: AuthMode) => void;
-  onEmailChange: (value: string) => void;
-  onPasswordChange: (value: string) => void;
-  onDisplayNameChange: (value: string) => void;
-  onClose: () => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-}) {
-  const title = mode === "login" ? "Login to edit" : "Create account";
-  return (
-    <div className="auth-backdrop" role="presentation">
-      <form className="auth-modal" onSubmit={onSubmit} aria-label={title}>
-        <div className="auth-modal-header">
-          <div>
-            <p className="eyebrow">Account required</p>
-            <h2>{title}</h2>
-          </div>
-          <button type="button" onClick={onClose} aria-label="Close authentication dialog">
-            x
-          </button>
-        </div>
-        <div className="auth-tabs" role="tablist" aria-label="Authentication mode">
-          <button type="button" className={mode === "login" ? "active" : ""} onClick={() => onModeChange("login")}>
-            Login
-          </button>
-          <button type="button" className={mode === "register" ? "active" : ""} onClick={() => onModeChange("register")}>
-            Register
-          </button>
-        </div>
-        {mode === "register" ? (
-          <label className="field">
-            Display name
-            <input value={displayName} onChange={(event) => onDisplayNameChange(event.target.value)} autoComplete="name" />
-          </label>
-        ) : null}
-        <label className="field">
-          Email
-          <input type="email" value={email} onChange={(event) => onEmailChange(event.target.value)} autoComplete="email" />
-        </label>
-        <label className="field">
-          Password
-          <input type="password" value={password} onChange={(event) => onPasswordChange(event.target.value)} autoComplete={mode === "login" ? "current-password" : "new-password"} />
-        </label>
-        {error ? <p className="error-message">{error}</p> : null}
-        {isLocked ? <p className="auth-hint">{lockedMessage || `Try again in ${lockoutSeconds} seconds.`}</p> : null}
-        <button className="auth-submit" type="submit" disabled={isSubmitting || isLocked}>
-          {isSubmitting ? "Working..." : mode === "login" ? "Login" : "Create account"}
-        </button>
-      </form>
-    </div>
+    </>
   );
 }
 
@@ -1294,8 +982,7 @@ function AdjustmentSlider({
   value,
   min,
   max,
-  onChange,
-}: {
+  onChange }: {
   label: string;
   value: number;
   min: number;
@@ -1351,8 +1038,7 @@ function toStickerResult(sticker: (typeof openMojiCatalog)[number]): StickerResu
     id: sticker.id,
     title: sticker.title,
     previewUrl: url,
-    fullUrl: url,
-  };
+    fullUrl: url };
 }
 
 function normalizeStickerTerm(term: string): string[] {
@@ -1379,8 +1065,7 @@ function normalizeStickerTerm(term: string): string[] {
     money: ["cash", "finance"],
     location: ["pin", "marker"],
     gaming: ["game"],
-    computer: ["laptop"],
-  };
+    computer: ["laptop"] };
   return aliases[term] || [];
 }
 
@@ -1397,8 +1082,7 @@ function erasePaintUnderPath(canvas: fabric.Canvas, eraserPath: fabric.Path) {
     left: eraserBounds.left - eraserPadding,
     top: eraserBounds.top - eraserPadding,
     width: eraserBounds.width + eraserPadding * 2,
-    height: eraserBounds.height + eraserPadding * 2,
-  };
+    height: eraserBounds.height + eraserPadding * 2 };
 
   const objectsToRemove = canvas
     .getObjects()
@@ -1423,43 +1107,17 @@ function rectanglesOverlap(
   );
 }
 
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
 
-function validateCredentials(email: string, password: string, displayName: string): string {
-  if (!email || !email.includes("@")) return "Enter a valid email address.";
-  if (password.length < 8) return "Password must be at least 8 characters.";
-  if (displayName !== undefined && displayName.length > 0 && displayName.length < 2) return "Display name is too short.";
-  return "";
-}
 
-function getDisplayUsername(user: User): string {
-  const displayName = user.user_metadata?.display_name;
-  if (typeof displayName === "string" && displayName.trim()) return displayName.trim();
-  return user.email || "account";
-}
 
-function getAuthErrorMessage(error: AuthError, mode: AuthMode): string {
-  const code = getAuthErrorCode(error);
-  const message = error.message.toLowerCase();
-  if (code === "email_not_confirmed" || message.includes("email not confirmed")) return "Confirm your email address before signing in.";
-  if (code === "user_already_exists" || message.includes("already registered")) return "An account already exists for this email. Login instead.";
-  if (code === "signup_disabled" || message.includes("signups not allowed")) return "New account registration is currently disabled.";
-  if (code === "invalid_credentials" || message.includes("invalid login")) return "Email or password is incorrect.";
-  if (code === "weak_password" || message.includes("weak password")) return "Choose a stronger password.";
-  if (mode === "register") return "Could not create this account. Check the details and try again.";
-  return "Could not login. Check the details and try again.";
-}
 
-function shouldCountAuthFailure(error: AuthError, mode: AuthMode): boolean {
-  const code = getAuthErrorCode(error);
-  return mode === "login" && (code === "invalid_credentials" || error.message.toLowerCase().includes("invalid"));
-}
 
-function getAuthErrorCode(error: AuthError): string {
-  return typeof error.code === "string" ? error.code : "";
-}
+
+
+
+
+
+
 
 function labelForShape(shape: ShapeKind): string {
   return {
@@ -1468,8 +1126,7 @@ function labelForShape(shape: ShapeKind): string {
     line: "Line",
     arrow: "Arrow",
     star: "Star",
-    speech: "Callout",
-  }[shape];
+    speech: "Callout" }[shape];
 }
 
 function makeStarPoints(points: number, outerRadius: number, innerRadius: number) {
@@ -1479,8 +1136,7 @@ function makeStarPoints(points: number, outerRadius: number, innerRadius: number
     const radius = index % 2 === 0 ? outerRadius : innerRadius;
     coordinates.push({
       x: outerRadius + Math.cos(index * step - Math.PI / 2) * radius,
-      y: outerRadius + Math.sin(index * step - Math.PI / 2) * radius,
-    });
+      y: outerRadius + Math.sin(index * step - Math.PI / 2) * radius });
   }
   return coordinates;
 }
