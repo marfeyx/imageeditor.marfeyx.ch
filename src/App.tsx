@@ -236,20 +236,42 @@ export default function App() {
   }, [brushColor, brushSize, canUseEditor, toolMode]);
 
   useEffect(() => {
-    function handleCropKeys(event: KeyboardEvent) {
-      if (toolModeRef.current !== "crop") return;
-      if (event.key === "Enter" && cropRectRef.current) {
-        event.preventDefault();
-        void applyCrop();
+    function handleKeys(event: KeyboardEvent) {
+      const target = event.target as HTMLElement;
+      const isInput = target.tagName === "INPUT" || target.tagName === "SELECT" || target.tagName === "TEXTAREA" || target.isContentEditable;
+
+      if (toolModeRef.current === "crop") {
+        if (event.key === "Enter" && cropRectRef.current) {
+          event.preventDefault();
+          void applyCrop();
+          return;
+        }
+        if (event.key === "Escape") {
+          event.preventDefault();
+          setTool("select");
+          return;
+        }
       }
-      if (event.key === "Escape") {
+
+      if (isInput) return;
+
+      if ((event.ctrlKey || event.metaKey) && event.key === "z" && !event.shiftKey) {
         event.preventDefault();
-        setTool("select");
+        void undo();
+      } else if ((event.ctrlKey || event.metaKey) && (event.key === "y" || (event.key === "z" && event.shiftKey))) {
+        event.preventDefault();
+        void redo();
+      } else if (event.key === "Delete" || event.key === "Backspace") {
+        event.preventDefault();
+        deleteSelection();
+      } else if (event.key === "Escape") {
+        canvasRef.current?.discardActiveObject();
+        canvasRef.current?.renderAll();
       }
     }
 
-    window.addEventListener("keydown", handleCropKeys);
-    return () => window.removeEventListener("keydown", handleCropKeys);
+    window.addEventListener("keydown", handleKeys);
+    return () => window.removeEventListener("keydown", handleKeys);
   }, []);
 
   useEffect(() => {
@@ -703,8 +725,8 @@ export default function App() {
           <>
             <button className="file-drop" type="button" onClick={() => fileInputRef.current?.click()}>
               <span className="file-icon">+</span>
-              <span>Open image file</span>
-              <small>PNG, JPEG, WebP, GIF, BMP, SVG</small>
+              <span>Open or drop image file</span>
+              <small>PNG, JPEG, WebP, GIF, BMP, SVG, AVIF, TIFF</small>
             </button>
             <input
               ref={fileInputRef}
@@ -792,9 +814,18 @@ export default function App() {
           </section>
         </aside>
 
-        <section className="editor-stage" aria-label="Image canvas">
+        <section
+          className="editor-stage"
+          aria-label="Image canvas"
+          onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; }}
+          onDrop={(event) => { event.preventDefault(); handleFile(event.dataTransfer.files?.[0]); }}
+        >
           <div className="stage-toolbar">
-
+            <div className="stage-info">
+              <span>{canvasWidth} x {canvasHeight}px</span>
+              {activeObjectLabel !== "No selection" ? <strong>{activeObjectLabel}</strong> : null}
+              {status ? <span>{status}</span> : null}
+            </div>
             <div className="toolbar-actions">
               {toolMode === "crop" ? (
                 <div className="crop-actions" aria-label="Crop actions">
@@ -813,9 +844,12 @@ export default function App() {
                 Redo
               </button>
               <label>
-                Zoom
+                Zoom {Math.round(zoom * 100)}%
                 <input type="range" min="0.2" max="1.5" step="0.02" value={zoom} onChange={(event) => setZoom(Number(event.target.value))} />
               </label>
+              <button type="button" onClick={() => setZoom(1)} title="Reset zoom to 100%">
+                1:1
+              </button>
             </div>
           </div>
           <div className="canvas-scroll">
@@ -906,6 +940,9 @@ export default function App() {
               <input type="checkbox" checked={adjustments.sepia} onChange={(event) => setAdjustments({ ...adjustments, sepia: event.target.checked })} />
               Sepia
             </label>
+            <button type="button" onClick={() => setAdjustments(initialAdjustments)}>
+              Reset adjustments
+            </button>
           </section>
 
           <section className="tool-section">
