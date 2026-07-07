@@ -141,7 +141,6 @@ export default function App() {
   const [exportQuality, setExportQuality] = useState(0.95);
   const [exportScale, setExportScale] = useState(1);
 
-  const canUseEditor = true;
   const hasImage = Boolean(baseImageRef.current);
 
   const canvasStyle = useMemo(
@@ -226,14 +225,14 @@ export default function App() {
     if (!canvas) return;
     toolModeRef.current = toolMode;
     configureBrush(canvas, brushColor, brushSize, toolMode);
-    canvas.isDrawingMode = canUseEditor && (toolMode === "draw" || toolMode === "erase");
+    canvas.isDrawingMode = toolMode === "draw" || toolMode === "erase";
     canvas.selection = toolMode !== "crop";
     canvas.getObjects().forEach((object) => {
       object.selectable = toolMode !== "crop";
       object.evented = toolMode !== "crop";
     });
     canvas.renderAll();
-  }, [brushColor, brushSize, canUseEditor, toolMode]);
+  }, [brushColor, brushSize, toolMode]);
 
   useEffect(() => {
     function handleKeys(event: KeyboardEvent) {
@@ -522,7 +521,7 @@ export default function App() {
 
   function createCropRect(originX = canvasWidth / 2, originY = canvasHeight / 2) {
     const canvas = canvasRef.current;
-    if (!canvas || !canUseEditor) return;
+    if (!canvas) return;
     removeCropRect(false);
     const width = Math.min(canvasWidth * 0.72, Math.max(180, canvasWidth - 40));
     const height = Math.min(canvasHeight * 0.72, Math.max(140, canvasHeight - 40));
