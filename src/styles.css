@@ -314,6 +314,17 @@ h2 {
   color: #9b2d25;
 }
 
+.stage-info {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stage-info strong {
+  color: #0a664d;
+}
+
 .stage-toolbar > div:first-child {
   min-width: 0;
 }
