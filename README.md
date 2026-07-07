@@ -1,22 +1,37 @@
 # Web Image Editor
 
-A GitHub Pages-ready browser image editor built with React, Vite, TypeScript, Fabric.js, and OpenMoji stickers.
+A private, browser-based image editor. All editing happens locally — no server uploads, no accounts.
+
+Built with React, TypeScript, Vite, and [Fabric.js](http://fabricjs.com/). Stickers powered by [OpenMoji](https://openmoji.org/) (CC BY-SA 4.0).
+
+## Features
+
+- Open PNG, JPEG, WebP, GIF, BMP, SVG, AVIF, and TIFF files
+- Draw, erase, crop, resize, and flip
+- Add text, shapes (rectangle, circle, line, arrow, star, callout), and OpenMoji stickers
+- Image adjustments: brightness, contrast, saturation, blur, pixelate, grayscale, sepia
+- Export as PNG, JPEG, WebP, or SVG with configurable quality and scale
+- Keyboard shortcuts: Ctrl+Z undo, Ctrl+Y redo, Delete to remove selection
+- Drag-and-drop file opening
+- Undo / redo history
 
 ## Local Development
 
-```powershell
+```sh
 npm install
 npm run dev
 ```
 
 ## Build
 
-```powershell
+```sh
 npm run build
 ```
 
-## Public Environment Variables
+## Deployment
 
-No public environment variables are required for local development or GitHub Pages builds.
+Deploys automatically to GitHub Pages on push to `main` via the included GitHub Actions workflow.
 
-Image editing and export happen locally in the browser. OpenMoji sticker SVGs are loaded from jsDelivr when selected.
+## License
+
+[MIT](LICENSE)

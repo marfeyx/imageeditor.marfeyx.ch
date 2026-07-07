@@ -8,3 +8,6 @@ vite.log
 vite.err.log
 vite.local.log
 vite.local.err.log
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
